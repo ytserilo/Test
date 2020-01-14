@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+
+    <meta charset="utf-8">
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartist/0.11.4/chartist.min.js"></script>
+	  <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.3/themes/hot-sneaks/jquery-ui.css" />
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous"></script>
+      <script src="http://code.jquery.com/ui/1.11.2/jquery-ui.js"></script>
+    <style media="screen">
+     .info-block span{
+        background: #d70206; display:block; width: 20px; height: 20px;
+      }
+      .info-block span:nth-child(1){
+        background: #f05b4f;
+      }
+      .controll-block{
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="my-chart">
+
+    </div>
+    <div class="controll-block">
+      <div class="info-block">
+        <span></span>
+        <p>Count clicks</p>
+        <span></span>
+        <p>Count views</p>
+      </div>
+      <div class="edit">
+        <label for="demoDate">Start date: </label><input id="start-date"/>
+        <label for="demoDate">Fin date: </label><input id="fin-date"/>
+      </div>
+    </div>
+
+  </body>
+  <script type="text/javascript">
+
+    /* Set some base options (settings will override the default settings in Chartist.js *see default settings*). We are adding a basic label interpolation function for the xAxis labels. */
+    var options = {
+    axisX: {
+      labelInterpolationFnc: function(value) {
+        return value;
+      }
+    }
+    };
+
+    /* Now we can specify multiple responsive settings that will override the base settings based on order and if the media queries match. In this example we are changing the visibility of dots and lines as well as use different label interpolations for space reasons. */
+    var responsiveOptions = [
+    ['screen and (min-width: 641px) and (max-width: 1024px)', {
+      showPoint: false,
+      axisX: {
+        labelInterpolationFnc: function(value) {
+          return 'Week ' + value;
+        }
+      }
+    }],
+    ['screen and (max-width: 640px)', {
+      showLine: false,
+      axisX: {
+        labelInterpolationFnc: function(value) {
+          return 'W' + value;
+        }
+      }
+    }]
+    ];
+
+    /* Initialize the chart with the above settings */
+    function draw_graphic(start_date=null, fin_data=null){
+      if(start_date == null){
+        var start_date = new Date();
+        start_date.setDate(start_date.getDate() - 7);
+      }else{
+        var start_date = new Date(start_date);
+      }
+
+      if(fin_data == null){
+        var fin_data = new Date();
+      }else{
+        var fin_data = new Date(fin_data);
+      }
+
+      $.ajax({
+        url: window.location.href,
+        method: "GET",
+        data: {
+          "data": JSON.stringify({
+            "start-date": start_date.toJSON(),
+            "fin-date": fin_data.toJSON(),
+          })
+        },
+        success: function(data){
+          try{
+            var new_labels = [];
+            var new_click_list = [];
+            var new_view_list = [];
+
+            for(var i in data["user_info"]){
+              var fin = data["user_info"][i]["date"].search("T");
+              var name = data["user_info"][i]["date"].slice(0, fin);
+
+              var clicks = data["user_info"][i]["clicks"];
+              var views = data["user_info"][i]["page_views"];
+
+              new_labels.push(name);
+              new_click_list.push(clicks);
+              new_view_list.push(views);
+            }
+
+            var line_data = {
+              labels: new_labels,
+              series: [
+                new_click_list,
+                new_view_list,
+              ]
+            }
+            new Chartist.Line('#my-chart', line_data, options, responsiveOptions);
+          }catch{
+              window.location.replace("/users/")
+          }
+        }
+      })
+    }
+    draw_graphic();
+    $('#start-date').datepicker({
+           onClose: function(date, datepicker) {
+                var fin_date = $("#fin-date").val();
+                if(fin_date == ''){
+                  fin_date = null;
+                }
+               draw_graphic(start_date=date, fin_data=fin_date);
+           }
+       });
+     $("#fin-date").datepicker({
+            onClose: function(date, datepicker) {
+              var start_date = $("#start-date").val();
+              if(start_date == ''){
+                start_date = null;
+              }
+             draw_graphic(start_date=start_date, fin_data=date);
+            }
+        });
+  </script>
+</html>
